@@ -199,7 +199,7 @@ with st.sidebar:
     st.markdown("• Executive Summary")
     st.markdown("• Strategic Analytics")
     st.markdown("• Domain Analysis")
-    st.markdown("• Requestor Analysis")
+    st.markdown("• Tower Lead Analysis")
     st.markdown("• Portfolio Overview")
 
 # Load data from OneDrive
