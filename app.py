@@ -1,4 +1,4 @@
-# app.py - Executive SCP Savings Dashboard
+# app.py - Executive SCP Savings Dashboard with OneDrive Integration
 
 import streamlit as st
 import pandas as pd
@@ -6,20 +6,22 @@ import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime, date
 import numpy as np
+import requests
+from io import BytesIO
 
 # Configure Streamlit page
 st.set_page_config(
     page_title="SCP Savings Dashboard",
     page_icon="💰",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
 )
 
-# Executive-style CSS
+# Executive-style CSS with reduced font sizes
 st.markdown("""
 <style>
     .main-header {
-        font-size: 42px;
+        font-size: 40px;
         color: #003366;
         text-align: center;
         font-weight: 700;
@@ -43,6 +45,11 @@ st.markdown("""
         text-align: center;
         border: 1px solid rgba(255,255,255,0.1);
         transition: transform 0.3s ease;
+        min-height: 140px;
+        max-width: 16.66%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
     }
     .insight-box:hover {
         transform: translateY(-5px);
@@ -54,21 +61,20 @@ st.markdown("""
         background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
     }
     .insight-title {
-        font-size: 14px;
+        font-size: 13px;
         font-weight: 500;
         margin-bottom: 8px;
         opacity: 0.95;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
+        letter-spacing: 0.3px;
     }
     .insight-value {
-        font-size: 28px;
+        font-size: 26px;
         font-weight: 700;
         margin-bottom: 8px;
         line-height: 1;
     }
     .insight-subtitle {
-        font-size: 11px;
+        font-size: 10px;
         opacity: 0.85;
         font-style: italic;
     }
@@ -89,7 +95,7 @@ st.markdown("""
         border: 1px solid #e2e8f0;
     }
     .section-header {
-        font-size: 24px;
+        font-size: 22px;
         color: #003366;
         font-weight: 600;
         margin-bottom: 20px;
@@ -104,40 +110,104 @@ st.markdown("""
         text-align: center;
         font-weight: 500;
     }
+    .portfolio-section {
+        background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+        padding: 25px;
+        border-radius: 15px;
+        margin-bottom: 30px;
+        border: 1px solid #cbd5e0;
+    }
+    .onedrive-config {
+        background: linear-gradient(135deg, #e6f3ff 0%, #ccebff 100%);
+        padding: 20px;
+        border-radius: 10px;
+        border-left: 4px solid #003366;
+        margin-bottom: 20px;
+    }
 </style>
 """, unsafe_allow_html=True)
 
-# Load data function
-@st.cache_data
-def load_data():
+# OneDrive file configuration
+def convert_onedrive_url(share_url):
+    """Convert OneDrive sharing URL to direct download URL"""
     try:
-        file_path = "SCP_Savings_FY26_dummy_v3.xlsx"
-        df = pd.read_excel(file_path, sheet_name="Savings_WIP_Data")
-        return df
-    except FileNotFoundError:
-        st.error("❌ Excel file 'SCP_Savings_FY26_dummy_v3.xlsx' not found.")
+        # Extract the file ID from the OneDrive URL
+        if "1drv.ms" in share_url:
+            # This is a simplified conversion - in production, you might need more robust handling
+            # For now, we'll use a placeholder approach
+            return share_url.replace("1drv.ms/x/", "api.onedrive.com/v1.0/shares/").replace("?e=", "/driveItem/content?access_token=")
+        return share_url
+    except:
         return None
+
+# Load data from OneDrive
+@st.cache_data
+def load_data_from_onedrive(onedrive_url):
+    try:
+        # For demonstration, we'll try to load from a direct Excel URL
+        # In production, you'd need proper OneDrive API authentication
+        
+        # Convert sharing URL to direct download (simplified approach)
+        # Note: This is a placeholder - actual OneDrive API integration would require authentication
+        
+        # Try loading directly first (if it's already a direct link)
+        try:
+            response = requests.get(onedrive_url, timeout=30)
+            if response.status_code == 200:
+                df = pd.read_excel(BytesIO(response.content), sheet_name="Savings_WIP_Data")
+                return df, "OneDrive file loaded successfully"
+        except:
+            pass
+        
+        # Fallback to local file for demonstration
+        try:
+            df = pd.read_excel("SCP_Savings_FY26_dummy_v3.xlsx", sheet_name="Savings_WIP_Data")
+            return df, "Using local file (OneDrive integration pending)"
+        except:
+            return None, "Unable to load data from OneDrive or local file"
+            
     except Exception as e:
-        st.error(f"❌ Error loading data: {str(e)}")
-        return None
+        return None, f"Error loading data: {str(e)}"
 
-# File upload option
+# Dashboard Header
+st.markdown('<h1 class="main-header">Executive SCP Savings Dashboard</h1>', unsafe_allow_html=True)
+
+# OneDrive Configuration Section
 with st.sidebar:
-    st.header("📁 Data Upload")
-    uploaded_file = st.file_uploader(
-        "Upload Excel File", 
-        type=['xlsx', 'xls'],
-        help="Upload your SCP Savings file"
+    st.markdown('<div class="onedrive-config">', unsafe_allow_html=True)
+    st.header("🔗 OneDrive Configuration")
+    
+    # Default OneDrive URL
+    default_url = "https://1drv.ms/x/c/9e1c07238f947303/EbI62L-aBvdDgxmyFIMOdugB5BoH7r7ATZcU1ywNSR1Psw?e=ai5TM1"
+    
+    onedrive_url = st.text_input(
+        "OneDrive File URL:",
+        value=default_url,
+        help="Paste your OneDrive Excel file sharing URL here"
     )
+    
+    if st.button("🔄 Reload Data"):
+        st.cache_data.clear()
+        st.rerun()
+    
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    # Data source info
+    st.info("📊 Data Source: OneDrive Integration")
+    st.markdown("---")
+    st.markdown("**Dashboard Features:**")
+    st.markdown("• Executive Summary")
+    st.markdown("• Strategic Analytics")
+    st.markdown("• Domain Analysis")
+    st.markdown("• Requestor Analysis")
+    st.markdown("• Portfolio Overview")
 
-# Load data
-if uploaded_file:
-    df = pd.read_excel(uploaded_file, sheet_name="Savings_WIP_Data")
-    st.sidebar.success("✅ File uploaded successfully!")
-else:
-    df = load_data()
+# Load data from OneDrive
+df, load_message = load_data_from_onedrive(onedrive_url)
 
 if df is not None:
+    st.success(f"✅ {load_message}")
+    
     # Data preprocessing
     df.rename(columns={
         "Difference (PA)-Finance": "Savings_Finance",
@@ -153,9 +223,6 @@ if df is not None:
     for col in date_columns:
         if col in df.columns:
             df[col] = pd.to_datetime(df[col], errors="coerce")
-
-    # Dashboard Header
-    st.markdown('<h1 class="main-header">Executive SCP Savings Dashboard</h1>', unsafe_allow_html=True)
 
     # FILTERS SECTION
     st.markdown('<div class="filter-section">', unsafe_allow_html=True)
@@ -323,7 +390,29 @@ if df is not None:
         </div>
         """, unsafe_allow_html=True)
 
-    st.markdown("<br>", unsafe_allow_html=True)
+    # PORTFOLIO OVERVIEW (Moved below Executive Summary)
+    st.markdown('<div class="portfolio-section">', unsafe_allow_html=True)
+    st.markdown('<h2 class="section-header">📋 Portfolio Overview</h2>', unsafe_allow_html=True)
+    
+    portfolio_col1, portfolio_col2, portfolio_col3, portfolio_col4 = st.columns(4)
+    
+    with portfolio_col1:
+        st.metric("Active Contracts", len(filtered_df))
+    
+    with portfolio_col2:
+        avg_finance = filtered_df["Savings_Finance"].mean()
+        st.metric("Avg Finance Impact", f"${avg_finance:,.0f}")
+    
+    with portfolio_col3:
+        avg_scp = filtered_df["Savings_SCP"].mean()
+        st.metric("Avg SCP Impact", f"${avg_scp:,.0f}")
+    
+    with portfolio_col4:
+        if "Domain" in filtered_df.columns:
+            unique_domains = filtered_df["Domain"].nunique()
+            st.metric("Business Domains", unique_domains)
+    
+    st.markdown('</div>', unsafe_allow_html=True)
 
     # STRATEGIC ANALYTICS SECTION
     st.markdown('<h2 class="section-header">📊 Strategic Analytics</h2>', unsafe_allow_html=True)
@@ -363,7 +452,7 @@ if df is not None:
                 title={
                     'text': "Finance Impact by Fiscal Year",
                     'x': 0.5,
-                    'font': {'size': 18, 'color': '#003366', 'family': 'Helvetica Neue'}
+                    'font': {'size': 16, 'color': '#003366', 'family': 'Helvetica Neue'}
                 },
                 xaxis_title="Fiscal Year",
                 yaxis_title="Financial Impact ($)",
@@ -409,7 +498,7 @@ if df is not None:
                 title={
                     'text': "SCP Impact by Fiscal Year",
                     'x': 0.5,
-                    'font': {'size': 18, 'color': '#003366', 'family': 'Helvetica Neue'}
+                    'font': {'size': 16, 'color': '#003366', 'family': 'Helvetica Neue'}
                 },
                 xaxis_title="Fiscal Year",
                 yaxis_title="SCP Impact ($)",
@@ -425,78 +514,115 @@ if df is not None:
         
         st.markdown('</div>', unsafe_allow_html=True)
 
-    # DOMAIN ANALYSIS
-    st.markdown('<div class="chart-container">', unsafe_allow_html=True)
-    st.markdown('<h3 class="section-header">🏢 Business Domain Analysis</h3>', unsafe_allow_html=True)
+    # DOMAIN AND REQUESTOR ANALYSIS
+    analysis_col1, analysis_col2 = st.columns(2)
     
-    if "Domain" in filtered_df.columns:
-        domain_finance = filtered_df.groupby("Domain")["Savings_Finance"].sum().reset_index()
-        domain_finance = domain_finance.sort_values("Savings_Finance", ascending=True)
+    with analysis_col1:
+        # DOMAIN ANALYSIS
+        st.markdown('<div class="chart-container">', unsafe_allow_html=True)
+        st.markdown('<h3 class="section-header">🏢 Business Domain Analysis</h3>', unsafe_allow_html=True)
         
-        # Create gradient colors for domains
-        n_domains = len(domain_finance)
-        domain_colors = [mckinsey_blues[i % len(mckinsey_blues)] for i in range(n_domains)]
-        
-        fig_domain = go.Figure()
-        
-        fig_domain.add_trace(go.Bar(
-            x=domain_finance["Savings_Finance"],
-            y=domain_finance["Domain"],
-            orientation='h',
-            marker=dict(
-                color=domain_colors,
-                line=dict(color='white', width=1)
-            ),
-            text=[f"${val:,.0f}" for val in domain_finance["Savings_Finance"]],
-            textposition="outside",
-            hovertemplate="<b>Domain:</b> %{y}<br><b>Financial Impact:</b> $%{x:,.0f}<extra></extra>"
-        ))
-        
-        fig_domain.update_layout(
-            title={
-                'text': "Financial Impact by Business Domain",
-                'x': 0.5,
-                'font': {'size': 18, 'color': '#003366', 'family': 'Helvetica Neue'}
-            },
-            xaxis_title="Financial Impact ($)",
-            yaxis_title="Business Domain",
-            plot_bgcolor="white",
-            paper_bgcolor="white",
-            font=dict(size=11, color="#003366"),
-            height=max(400, n_domains * 45),
-            showlegend=False,
-            xaxis=dict(showgrid=True, gridcolor='#f0f0f0', gridwidth=1),
-            yaxis=dict(showgrid=False)
-        )
-        
-        st.plotly_chart(fig_domain, use_container_width=True)
-    
-    st.markdown('</div>', unsafe_allow_html=True)
-
-    # PORTFOLIO OVERVIEW
-    st.markdown('<h2 class="section-header">📋 Portfolio Overview</h2>', unsafe_allow_html=True)
-    
-    # Portfolio summary metrics
-    portfolio_col1, portfolio_col2, portfolio_col3, portfolio_col4 = st.columns(4)
-    
-    with portfolio_col1:
-        st.metric("Active Contracts", len(filtered_df))
-    
-    with portfolio_col2:
-        avg_finance = filtered_df["Savings_Finance"].mean()
-        st.metric("Avg Finance Impact", f"${avg_finance:,.0f}")
-    
-    with portfolio_col3:
-        avg_scp = filtered_df["Savings_SCP"].mean()
-        st.metric("Avg SCP Impact", f"${avg_scp:,.0f}")
-    
-    with portfolio_col4:
         if "Domain" in filtered_df.columns:
-            unique_domains = filtered_df["Domain"].nunique()
-            st.metric("Business Domains", unique_domains)
+            domain_finance = filtered_df.groupby("Domain")["Savings_Finance"].sum().reset_index()
+            domain_finance = domain_finance.sort_values("Savings_Finance", ascending=True)
+            
+            # Create gradient colors for domains
+            n_domains = len(domain_finance)
+            domain_colors = [mckinsey_blues[i % len(mckinsey_blues)] for i in range(n_domains)]
+            
+            fig_domain = go.Figure()
+            
+            fig_domain.add_trace(go.Bar(
+                x=domain_finance["Savings_Finance"],
+                y=domain_finance["Domain"],
+                orientation='h',
+                marker=dict(
+                    color=domain_colors,
+                    line=dict(color='white', width=1)
+                ),
+                text=[f"${val:,.0f}" for val in domain_finance["Savings_Finance"]],
+                textposition="outside",
+                hovertemplate="<b>Domain:</b> %{y}<br><b>Financial Impact:</b> $%{x:,.0f}<extra></extra>"
+            ))
+            
+            fig_domain.update_layout(
+                title={
+                    'text': "Financial Impact by Business Domain",
+                    'x': 0.5,
+                    'font': {'size': 16, 'color': '#003366', 'family': 'Helvetica Neue'}
+                },
+                xaxis_title="Financial Impact ($)",
+                yaxis_title="Business Domain",
+                plot_bgcolor="white",
+                paper_bgcolor="white",
+                font=dict(size=10, color="#003366"),
+                height=max(350, n_domains * 35),
+                showlegend=False,
+                xaxis=dict(showgrid=True, gridcolor='#f0f0f0', gridwidth=1),
+                yaxis=dict(showgrid=False)
+            )
+            
+            st.plotly_chart(fig_domain, use_container_width=True)
+        
+        st.markdown('</div>', unsafe_allow_html=True)
 
-    # Data export section
-    st.markdown("### 💾 Data Export")
+    with analysis_col2:
+        # REQUESTOR ANALYSIS
+        st.markdown('<div class="chart-container">', unsafe_allow_html=True)
+        st.markdown('<h3 class="section-header">👤 Requestor Analysis</h3>', unsafe_allow_html=True)
+        
+        if "Requestor" in filtered_df.columns:
+            requestor_finance = filtered_df.groupby("Requestor")["Savings_Finance"].sum().reset_index()
+            requestor_finance = requestor_finance.sort_values("Savings_Finance", ascending=True)
+            
+            # Limit to top 15 requestors for readability
+            if len(requestor_finance) > 15:
+                requestor_finance = requestor_finance.tail(15)
+            
+            # Create gradient colors for requestors
+            n_requestors = len(requestor_finance)
+            requestor_colors = [mckinsey_blues[i % len(mckinsey_blues)] for i in range(n_requestors)]
+            
+            fig_requestor = go.Figure()
+            
+            fig_requestor.add_trace(go.Bar(
+                x=requestor_finance["Savings_Finance"],
+                y=requestor_finance["Requestor"],
+                orientation='h',
+                marker=dict(
+                    color=requestor_colors,
+                    line=dict(color='white', width=1)
+                ),
+                text=[f"${val:,.0f}" for val in requestor_finance["Savings_Finance"]],
+                textposition="outside",
+                hovertemplate="<b>Requestor:</b> %{y}<br><b>Financial Impact:</b> $%{x:,.0f}<extra></extra>"
+            ))
+            
+            fig_requestor.update_layout(
+                title={
+                    'text': "Financial Impact by Requestor",
+                    'x': 0.5,
+                    'font': {'size': 16, 'color': '#003366', 'family': 'Helvetica Neue'}
+                },
+                xaxis_title="Financial Impact ($)",
+                yaxis_title="Requestor",
+                plot_bgcolor="white",
+                paper_bgcolor="white",
+                font=dict(size=10, color="#003366"),
+                height=max(350, n_requestors * 35),
+                showlegend=False,
+                xaxis=dict(showgrid=True, gridcolor='#f0f0f0', gridwidth=1),
+                yaxis=dict(showgrid=False)
+            )
+            
+            st.plotly_chart(fig_requestor, use_container_width=True)
+        else:
+            st.info("📋 Requestor data not available in the current dataset")
+        
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    # DATA EXPORT SECTION
+    st.markdown('<h2 class="section-header">💾 Data Export</h2>', unsafe_allow_html=True)
     
     # Summary for executives
     total_records = len(filtered_df)
@@ -506,7 +632,7 @@ if df is not None:
         st.markdown(f'<div class="data-summary">Complete Portfolio Analysis: {total_records:,} active contracts</div>', unsafe_allow_html=True)
 
     # Download options
-    export_col1, export_col2 = st.columns(2)
+    export_col1, export_col2, export_col3 = st.columns(3)
     
     with export_col1:
         # Executive summary export
@@ -532,12 +658,39 @@ if df is not None:
             file_name=f"portfolio_analysis_{datetime.now().strftime('%Y%m%d_%H%M')}.csv",
             mime="text/csv"
         )
+    
+    with export_col3:
+        # Analytics export
+        analytics_data = {}
+        if "Domain" in filtered_df.columns:
+            domain_summary = filtered_df.groupby("Domain")["Savings_Finance"].sum()
+            analytics_data.update(domain_summary.to_dict())
+        
+        if analytics_data:
+            analytics_df = pd.DataFrame(list(analytics_data.items()), columns=['Category', 'Financial_Impact'])
+            csv_analytics = analytics_df.to_csv(index=False)
+            st.download_button(
+                label="📈 Download Analytics Data",
+                data=csv_analytics,
+                file_name=f"analytics_data_{datetime.now().strftime('%Y%m%d_%H%M')}.csv",
+                mime="text/csv"
+            )
 
 else:
     # Error state
-    st.error("⚠️ Data source unavailable")
-    st.info("Please upload an Excel file using the sidebar to proceed with the analysis.")
+    st.error(f"⚠️ {load_message}")
+    st.info("Please check your OneDrive URL and ensure the file is accessible.")
+    
+    # Show example URL format
+    st.markdown("### 📝 OneDrive URL Format")
+    st.code("https://1drv.ms/x/c/[file-id]/[file-name]?e=[access-code]")
+    
+    st.markdown("### 🔧 Troubleshooting")
+    st.markdown("• Ensure the OneDrive file has appropriate sharing permissions")
+    st.markdown("• Verify the Excel file contains 'Savings_WIP_Data' sheet")
+    st.markdown("• Check if the file URL is accessible from external applications")
+    st.markdown("• Contact IT support if OneDrive API integration is required")
 
 # Footer
 st.markdown("---")
-st.markdown("**Executive SCP Savings Dashboard** | Strategic Portfolio Analytics | Confidential")
+st.markdown("**Executive SCP Savings Dashboard** | OneDrive Integration | Strategic Portfolio Analytics | Confidential")
