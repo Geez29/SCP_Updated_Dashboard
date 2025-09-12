@@ -1,4 +1,4 @@
-# app.py - Executive SCP Savings Dashboard with Flex Logo and Clean Sidebar
+# app.py - Executive SCP Savings Dashboard - Clean Version
 
 import streamlit as st
 import pandas as pd
@@ -18,9 +18,14 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Enhanced CSS with Flex logo in top-right corner and clean layout
+# Enhanced CSS with Flex logo in top-right corner
 st.markdown("""
 <style>
+    /* Hide default Streamlit elements */
+    #MainMenu {visibility: hidden;}
+    .stDeployButton {display:none;}
+    footer {visibility: hidden;}
+    
     .main-header {
         font-size: 42px;
         color: #003366;
@@ -31,22 +36,38 @@ st.markdown("""
         letter-spacing: -0.5px;
     }
     
-    .flex-logo-top-right {
+    /* Flex Logo - Fixed to top-right corner */
+    .flex-logo-fixed {
         position: fixed;
-        top: 20px;
+        top: 10px;
         right: 20px;
-        z-index: 1000;
+        z-index: 999999;
         background: white;
-        padding: 10px;
-        border-radius: 10px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        padding: 8px 12px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
         border: 1px solid #e2e8f0;
     }
     
-    .flex-logo {
+    .flex-logo-img {
         width: 120px;
         height: auto;
         display: block;
+    }
+    
+    /* Fallback text logo */
+    .flex-text-logo {
+        width: 120px;
+        height: 35px;
+        background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%);
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 700;
+        font-size: 16px;
+        font-family: 'Arial', sans-serif;
     }
     
     .summary-container {
@@ -149,12 +170,12 @@ st.markdown("""
         font-weight: 500;
     }
     
-    .sidebar-status {
+    .sidebar-clean {
         background: linear-gradient(135deg, #e6f3ff 0%, #ccebff 100%);
         padding: 20px;
         border-radius: 10px;
         border-left: 4px solid #003366;
-        margin-bottom: 20px;
+        margin: 20px 0;
         text-align: center;
     }
     
@@ -162,41 +183,33 @@ st.markdown("""
         color: #28a745;
         font-weight: 600;
         font-size: 16px;
+        margin-top: 8px;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# Working OneDrive integration functions
+# OneDrive integration functions
 def extract_direct_link(onedrive_url):
     """Extract direct download link from OneDrive sharing URL"""
     try:
-        # Method 1: For onedrive.live.com URLs
         if "onedrive.live.com" in onedrive_url:
-            # Extract the file ID from the URL
             if "resid=" in onedrive_url:
-                # Get everything after resid=
                 parts = onedrive_url.split("resid=")[1]
                 file_id = parts.split("&")[0] if "&" in parts else parts
-                
-                # Construct direct download URL
                 direct_url = f"https://onedrive.live.com/download?resid={file_id}"
                 return direct_url
         
-        # Method 2: Try to add download parameter
         if "?" in onedrive_url:
             return onedrive_url + "&download=1"
         else:
             return onedrive_url + "?download=1"
             
     except Exception as e:
-        st.warning(f"URL processing error: {e}")
         return onedrive_url
 
-@st.cache_data(ttl=300)  # Cache for 5 minutes
+@st.cache_data(ttl=300)
 def load_onedrive_data(onedrive_url):
     """Load data from OneDrive with robust error handling"""
-    
-    # Try multiple methods to access OneDrive file
     methods = [
         ("Direct Download", extract_direct_link(onedrive_url)),
         ("Original URL", onedrive_url),
@@ -206,7 +219,7 @@ def load_onedrive_data(onedrive_url):
     for method_name, url in methods:
         try:
             headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
                 'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,*/*',
                 'Accept-Language': 'en-US,en;q=0.9',
                 'Referer': 'https://onedrive.live.com/',
@@ -214,81 +227,75 @@ def load_onedrive_data(onedrive_url):
             
             response = requests.get(url, headers=headers, timeout=30, allow_redirects=True)
             
-            # Check if we got actual Excel content
             if (response.status_code == 200 and 
                 len(response.content) > 1000 and 
                 (response.headers.get('content-type', '').startswith('application/') or 
-                 response.content[:4] == b'PK\x03\x04')):  # Excel file signature
+                 response.content[:4] == b'PK\x03\x04')):
                 
                 try:
                     df = pd.read_excel(BytesIO(response.content), sheet_name="Savings_WIP_Data")
                     if len(df) > 0:
                         return df, f"OneDrive file loaded successfully via {method_name}"
-                except Exception as excel_error:
+                except Exception:
                     continue
                     
-        except Exception as request_error:
+        except Exception:
             continue
     
-    # If OneDrive fails, try local file
+    # Fallback to local file
     try:
         df = pd.read_excel("SCP_Savings_FY26_dummy_v3.xlsx", sheet_name="Savings_WIP_Data")
-        return df, "Using local file - OneDrive connection unsuccessful. Please verify URL and file permissions."
+        return df, "Using local file - OneDrive connection unsuccessful"
     except FileNotFoundError:
-        return None, "OneDrive connection failed and no local backup file available. Please check the OneDrive URL."
+        return None, "No data source available"
     except Exception as e:
-        return None, f"Unable to load data from any source: {str(e)}"
+        return None, f"Unable to load data: {str(e)}"
 
-# Function to encode image to base64
 def get_base64_image(image_path):
-    """Convert image to base64 string for embedding in HTML"""
+    """Convert image to base64"""
     try:
         with open(image_path, "rb") as img_file:
             return base64.b64encode(img_file.read()).decode()
     except:
-        # Return empty string if image not found
         return ""
 
-# Flex Logo in Top-Right Corner
-flex_logo_base64 = get_base64_image("flex_logo.png")  # Make sure to save your logo as flex_logo.png
+# Add Flex Logo to top-right corner
+flex_logo_base64 = get_base64_image("flex_logo.png")
 
 if flex_logo_base64:
     st.markdown(f'''
-    <div class="flex-logo-top-right">
-        <img src="data:image/png;base64,{flex_logo_base64}" class="flex-logo" alt="Flex Logo">
+    <div class="flex-logo-fixed">
+        <img src="data:image/png;base64,{flex_logo_base64}" class="flex-logo-img" alt="Flex">
     </div>
     ''', unsafe_allow_html=True)
 else:
-    # Fallback if logo is not available - create a simple Flex text logo in top-right
+    # Fallback text logo
     st.markdown('''
-    <div class="flex-logo-top-right">
-        <div style="width: 120px; height: 40px; background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%); 
-                    border-radius: 8px; display: flex; align-items: center; justify-content: center; 
-                    color: white; font-weight: 700; font-size: 18px;">
-            flex
-        </div>
+    <div class="flex-logo-fixed">
+        <div class="flex-text-logo">flex</div>
+    </div>
+    ''', unsafe_allow_html=True)
+
+# CLEAN SIDEBAR - ONLY Dashboard Status
+with st.sidebar:
+    st.markdown('''
+    <div class="sidebar-clean">
+        <div style="font-weight: 600; color: #003366;">📊 Dashboard Status:</div>
+        <div class="status-active">Active</div>
     </div>
     ''', unsafe_allow_html=True)
 
 # Dashboard Header
 st.markdown('<h1 class="main-header">Executive SCP Savings Dashboard</h1>', unsafe_allow_html=True)
 
-# CLEAN SIDEBAR - Only Dashboard Status
-with st.sidebar:
-    st.markdown('<div class="sidebar-status">', unsafe_allow_html=True)
-    st.markdown("📊 **Dashboard Status:**")
-    st.markdown('<div class="status-active">Active</div>', unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
-
-# Hidden OneDrive URL configuration (not visible in UI)
+# Hidden OneDrive configuration (not shown in UI)
 default_onedrive_url = "https://onedrive.live.com/:x:/g/personal/9E1C07238F947303/EbI62L-aBvdDgxmyFIMOdugB5BoH7r7ATZcU1ywNSR1Psw?resid=9E1C07238F947303!sbfd83ab2069a43f78319b214830e76e8&ithint=file%2Cxlsx&e=bSpS5T"
-onedrive_url = default_onedrive_url
 
-# Load data with visual feedback
-with st.spinner("Loading data from OneDrive..."):
-    df, status_message = load_onedrive_data(onedrive_url)
+# Load data
+with st.spinner("Loading data..."):
+    df, status_message = load_onedrive_data(default_onedrive_url)
 
-# Display connection status
+# Show connection status
 if df is not None:
     if "successfully" in status_message.lower():
         st.success(status_message)
@@ -385,7 +392,7 @@ if df is not None:
     positive_scp = filtered_df.loc[filtered_df["Savings_SCP"] > 0, "Savings_SCP"].sum()
     negative_scp = filtered_df.loc[filtered_df["Savings_SCP"] < 0, "Savings_SCP"].sum()
 
-    # EXECUTIVE SUMMARY - 3 COLUMN GRID LAYOUT
+    # EXECUTIVE SUMMARY
     st.markdown('<div class="summary-container">', unsafe_allow_html=True)
     st.markdown('<h2 class="section-header">📈 Executive Summary</h2>', unsafe_allow_html=True)
     
@@ -625,36 +632,19 @@ if df is not None:
         )
 
 else:
-    # Error state with detailed troubleshooting
+    # Error state
     st.error("Unable to Connect to OneDrive")
     
     with st.expander("🔧 Connection Troubleshooting"):
         st.markdown("""
         **Common OneDrive Issues:**
         
-        1. **Sharing Permissions**
-           - File must be shared with "Anyone with the link can view"
-           - Link should not be expired or restricted
-        
-        2. **URL Format**
-           - Must be the sharing link from OneDrive
-           - Should contain "onedrive.live.com" or "1drv.ms"
-        
-        3. **File Requirements**
-           - Excel file must contain "Savings_WIP_Data" sheet
-           - File should not be password protected
-        
-        4. **Network/Corporate Issues**
-           - Check if corporate firewall blocks OneDrive
-           - Try from different network if possible
-        
-        **Next Steps:**
-        1. Verify the OneDrive URL is correct and accessible
-        2. Test the URL in a web browser first
-        3. Ensure proper sharing permissions are set
-        4. Contact IT support if issues persist
+        1. **Sharing Permissions** - File must be shared with "Anyone with the link can view"
+        2. **URL Format** - Must be the sharing link from OneDrive
+        3. **File Requirements** - Excel file must contain "Savings_WIP_Data" sheet
+        4. **Network Issues** - Check if corporate firewall blocks OneDrive
         """)
 
 # Footer
 st.markdown("---")
-st.markdown("**Executive SCP Savings Dashboard** | Flex | OneDrive Integration | Confidential")
+st.markdown("**Executive SCP Savings Dashboard** | Flex | Confidential")
