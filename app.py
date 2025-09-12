@@ -280,7 +280,7 @@ else:
     </div>
     ''', unsafe_allow_html=True)
 
-# Simplified Sidebar with only Dashboard Status
+# Clean Sidebar with only Dashboard Status
 with st.sidebar:
     st.markdown('<div class="sidebar-status">', unsafe_allow_html=True)
     st.markdown("📊 **Dashboard Status:**")
