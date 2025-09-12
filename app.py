@@ -259,19 +259,19 @@ def get_base64_image(image_path):
     except:
         return ""
 
-# Add Flex Logo to top-right corner
+# Add Flex Logo to center of page
 flex_logo_base64 = get_base64_image("flex_logo.png")
 
 if flex_logo_base64:
     st.markdown(f'''
-    <div class="flex-logo-fixed">
+    <div class="flex-logo-centered">
         <img src="data:image/png;base64,{flex_logo_base64}" class="flex-logo-img" alt="Flex">
     </div>
     ''', unsafe_allow_html=True)
 else:
     # Fallback text logo
     st.markdown('''
-    <div class="flex-logo-fixed">
+    <div class="flex-logo-centered">
         <div class="flex-text-logo">flex</div>
     </div>
     ''', unsafe_allow_html=True)
@@ -295,13 +295,8 @@ default_onedrive_url = "https://onedrive.live.com/:x:/g/personal/9E1C07238F94730
 with st.spinner("Loading data..."):
     df, status_message = load_onedrive_data(default_onedrive_url)
 
-# Show connection status
-if df is not None:
-    if "successfully" in status_message.lower():
-        st.success(status_message)
-    else:
-        st.warning(status_message)
-else:
+# Only show error messages, not success messages
+if df is None:
     st.error(status_message)
 
 # Main dashboard content
