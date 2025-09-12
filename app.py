@@ -1,4 +1,4 @@
-# app.py - Executive SCP Savings Dashboard - Clean Version
+# app.py - SCP Savings Dashboard - Clean Version
 
 import streamlit as st
 import pandas as pd
@@ -643,5 +643,6 @@ else:
 # Footer
 st.markdown("---")
 st.markdown("**Flex Confidential**")
+
 
 
