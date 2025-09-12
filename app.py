@@ -642,5 +642,6 @@ else:
 
 # Footer
 st.markdown("---")
-st.markdown("**Flex Confidential")
+st.markdown("**Flex Confidential**")
+
 
