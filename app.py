@@ -642,4 +642,5 @@ else:
 
 # Footer
 st.markdown("---")
-st.markdown("**Executive SCP Savings Dashboard** | Flex | Confidential")
+st.markdown("**Flex Confidential")
+
