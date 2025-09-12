@@ -1,4 +1,4 @@
-# app.py - Executive SCP Savings Dashboard with Flex Logo and Simplified Sidebar
+# app.py - Executive SCP Savings Dashboard with Flex Logo and Clean Sidebar
 
 import streamlit as st
 import pandas as pd
@@ -18,7 +18,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Enhanced CSS with Flex logo integration
+# Enhanced CSS with Flex logo in top-right corner and clean layout
 st.markdown("""
 <style>
     .main-header {
@@ -31,30 +31,22 @@ st.markdown("""
         letter-spacing: -0.5px;
     }
     
-    .flex-logo-container {
-        display: flex;
-        align-items: center;
-        margin-bottom: 30px;
-        padding: 20px;
-        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-        border-radius: 15px;
-        border: 1px solid #cbd5e0;
-        box-shadow: 0 4px 16px rgba(0,0,0,0.05);
+    .flex-logo-top-right {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 1000;
+        background: white;
+        padding: 10px;
+        border-radius: 10px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        border: 1px solid #e2e8f0;
     }
     
     .flex-logo {
         width: 120px;
         height: auto;
-        margin-right: 20px;
-    }
-    
-    .dashboard-title {
-        flex: 1;
-        font-size: 28px;
-        color: #003366;
-        font-weight: 700;
-        font-family: 'Helvetica Neue', sans-serif;
-        margin: 0;
+        display: block;
     }
     
     .summary-container {
@@ -254,41 +246,41 @@ def get_base64_image(image_path):
         with open(image_path, "rb") as img_file:
             return base64.b64encode(img_file.read()).decode()
     except:
-        # Return a placeholder SVG if image not found
+        # Return empty string if image not found
         return ""
 
-# Flex Logo Header with Dashboard Title
+# Flex Logo in Top-Right Corner
 flex_logo_base64 = get_base64_image("flex_logo.png")  # Make sure to save your logo as flex_logo.png
 
 if flex_logo_base64:
     st.markdown(f'''
-    <div class="flex-logo-container">
+    <div class="flex-logo-top-right">
         <img src="data:image/png;base64,{flex_logo_base64}" class="flex-logo" alt="Flex Logo">
-        <h1 class="dashboard-title">Executive SCP Savings Dashboard</h1>
     </div>
     ''', unsafe_allow_html=True)
 else:
-    # Fallback if logo is not available - create a simple Flex text logo
+    # Fallback if logo is not available - create a simple Flex text logo in top-right
     st.markdown('''
-    <div class="flex-logo-container">
+    <div class="flex-logo-top-right">
         <div style="width: 120px; height: 40px; background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%); 
                     border-radius: 8px; display: flex; align-items: center; justify-content: center; 
-                    color: white; font-weight: 700; font-size: 18px; margin-right: 20px;">
+                    color: white; font-weight: 700; font-size: 18px;">
             flex
         </div>
-        <h1 class="dashboard-title">Executive SCP Savings Dashboard</h1>
     </div>
     ''', unsafe_allow_html=True)
 
-# Clean Sidebar with only Dashboard Status
+# Dashboard Header
+st.markdown('<h1 class="main-header">Executive SCP Savings Dashboard</h1>', unsafe_allow_html=True)
+
+# CLEAN SIDEBAR - Only Dashboard Status
 with st.sidebar:
     st.markdown('<div class="sidebar-status">', unsafe_allow_html=True)
     st.markdown("📊 **Dashboard Status:**")
     st.markdown('<div class="status-active">Active</div>', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
-# Hidden OneDrive URL configuration (still functional but not visible in sidebar)
-# URL Configuration - Change this line for new files
+# Hidden OneDrive URL configuration (not visible in UI)
 default_onedrive_url = "https://onedrive.live.com/:x:/g/personal/9E1C07238F947303/EbI62L-aBvdDgxmyFIMOdugB5BoH7r7ATZcU1ywNSR1Psw?resid=9E1C07238F947303!sbfd83ab2069a43f78319b214830e76e8&ithint=file%2Cxlsx&e=bSpS5T"
 onedrive_url = default_onedrive_url
 
