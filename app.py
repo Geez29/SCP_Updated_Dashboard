@@ -1,4 +1,4 @@
-# app.py - Executive SCP Savings Dashboard with Working OneDrive Integration
+# app.py - Executive SCP Savings Dashboard with Flex Logo and Simplified Sidebar
 
 import streamlit as st
 import pandas as pd
@@ -18,7 +18,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Enhanced CSS with proper 3-column tile layout
+# Enhanced CSS with Flex logo integration
 st.markdown("""
 <style>
     .main-header {
@@ -29,6 +29,32 @@ st.markdown("""
         margin-bottom: 40px;
         font-family: 'Helvetica Neue', sans-serif;
         letter-spacing: -0.5px;
+    }
+    
+    .flex-logo-container {
+        display: flex;
+        align-items: center;
+        margin-bottom: 30px;
+        padding: 20px;
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        border-radius: 15px;
+        border: 1px solid #cbd5e0;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.05);
+    }
+    
+    .flex-logo {
+        width: 120px;
+        height: auto;
+        margin-right: 20px;
+    }
+    
+    .dashboard-title {
+        flex: 1;
+        font-size: 28px;
+        color: #003366;
+        font-weight: 700;
+        font-family: 'Helvetica Neue', sans-serif;
+        margin: 0;
     }
     
     .summary-container {
@@ -131,12 +157,19 @@ st.markdown("""
         font-weight: 500;
     }
     
-    .onedrive-config {
+    .sidebar-status {
         background: linear-gradient(135deg, #e6f3ff 0%, #ccebff 100%);
         padding: 20px;
         border-radius: 10px;
         border-left: 4px solid #003366;
         margin-bottom: 20px;
+        text-align: center;
+    }
+    
+    .status-active {
+        color: #28a745;
+        font-weight: 600;
+        font-size: 16px;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -214,48 +247,50 @@ def load_onedrive_data(onedrive_url):
     except Exception as e:
         return None, f"Unable to load data from any source: {str(e)}"
 
-# Dashboard Header
-st.markdown('<h1 class="main-header">Executive SCP Savings Dashboard</h1>', unsafe_allow_html=True)
+# Function to encode image to base64
+def get_base64_image(image_path):
+    """Convert image to base64 string for embedding in HTML"""
+    try:
+        with open(image_path, "rb") as img_file:
+            return base64.b64encode(img_file.read()).decode()
+    except:
+        # Return a placeholder SVG if image not found
+        return ""
 
-# Enhanced OneDrive Configuration
+# Flex Logo Header with Dashboard Title
+flex_logo_base64 = get_base64_image("flex_logo.png")  # Make sure to save your logo as flex_logo.png
+
+if flex_logo_base64:
+    st.markdown(f'''
+    <div class="flex-logo-container">
+        <img src="data:image/png;base64,{flex_logo_base64}" class="flex-logo" alt="Flex Logo">
+        <h1 class="dashboard-title">Executive SCP Savings Dashboard</h1>
+    </div>
+    ''', unsafe_allow_html=True)
+else:
+    # Fallback if logo is not available - create a simple Flex text logo
+    st.markdown('''
+    <div class="flex-logo-container">
+        <div style="width: 120px; height: 40px; background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%); 
+                    border-radius: 8px; display: flex; align-items: center; justify-content: center; 
+                    color: white; font-weight: 700; font-size: 18px; margin-right: 20px;">
+            flex
+        </div>
+        <h1 class="dashboard-title">Executive SCP Savings Dashboard</h1>
+    </div>
+    ''', unsafe_allow_html=True)
+
+# Simplified Sidebar with only Dashboard Status
 with st.sidebar:
-    st.markdown('<div class="onedrive-config">', unsafe_allow_html=True)
-    st.header("🔗 OneDrive Configuration")
-    
-    # URL Configuration - Change this line for new files
-    default_onedrive_url = "https://onedrive.live.com/:x:/g/personal/9E1C07238F947303/EbI62L-aBvdDgxmyFIMOdugB5BoH7r7ATZcU1ywNSR1Psw?resid=9E1C07238F947303!sbfd83ab2069a43f78319b214830e76e8&ithint=file%2Cxlsx&e=bSpS5T"
-    
-    onedrive_url = st.text_input(
-        "OneDrive File URL:",
-        value=default_onedrive_url,
-        help="Enter your OneDrive Excel file sharing URL"
-    )
-    
-    # Action buttons
-    button_col1, button_col2 = st.columns(2)
-    with button_col1:
-        if st.button("🔄 Refresh Data"):
-            st.cache_data.clear()
-            st.rerun()
-    
-    with button_col2:
-        if st.button("🔍 Validate URL"):
-            with st.spinner("Validating..."):
-                test_df, test_msg = load_onedrive_data(onedrive_url)
-                if test_df is not None:
-                    st.success("URL is valid!")
-                else:
-                    st.error("URL validation failed")
-    
+    st.markdown('<div class="sidebar-status">', unsafe_allow_html=True)
+    st.markdown("📊 **Dashboard Status:**")
+    st.markdown('<div class="status-active">Active</div>', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
-    
-    # Dashboard info
-    st.info("📊 Dashboard Status: Active")
-    st.markdown("**Current Features:**")
-    st.markdown("• 3-Column Executive Summary")
-    st.markdown("• OneDrive Auto-Sync")
-    st.markdown("• Interactive Filtering")
-    st.markdown("• Business Analytics")
+
+# Hidden OneDrive URL configuration (still functional but not visible in sidebar)
+# URL Configuration - Change this line for new files
+default_onedrive_url = "https://onedrive.live.com/:x:/g/personal/9E1C07238F947303/EbI62L-aBvdDgxmyFIMOdugB5BoH7r7ATZcU1ywNSR1Psw?resid=9E1C07238F947303!sbfd83ab2069a43f78319b214830e76e8&ithint=file%2Cxlsx&e=bSpS5T"
+onedrive_url = default_onedrive_url
 
 # Load data with visual feedback
 with st.spinner("Loading data from OneDrive..."):
@@ -630,4 +665,4 @@ else:
 
 # Footer
 st.markdown("---")
-st.markdown("**Executive SCP Savings Dashboard** | OneDrive Integration | Confidential")
+st.markdown("**Executive SCP Savings Dashboard** | Flex | OneDrive Integration | Confidential")
